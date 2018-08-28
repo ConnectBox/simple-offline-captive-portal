@@ -2,7 +2,7 @@ Android 7.1 introduced a third captive portal user agent, the "X11" agent.
 
 # The "X11" agent
 
-Example user-agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36"
+Example user-agent: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36`
 
 * This agent is responsible for determining Internet Connectivity.
 * It will raise the "Sign-in to WiFi Network" sheet if it receives anything other than a 204 response for its magic URL.
@@ -14,7 +14,7 @@ Example user-agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, 
 
 # The "Dalvik" agent
 
-Example user-agent: "Dalvik/2.1.0 (Linux; U; Android 7.1.1; Pixel Build/NOF26V)"
+Example user-agent: `Dalvik/2.1.0 (Linux; U; Android 7.1.1; Pixel Build/NOF26V)`
 
 * This agent requests its magic URL whenever a page is loaded in the captive portal browser
 * Sometimes it requests its magic URL more than once each time a page is loaded in the captive portal browser
