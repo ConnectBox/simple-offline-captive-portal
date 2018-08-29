@@ -1,0 +1,2 @@
+recursive-include captiveportal/templates *
+recursive-include captiveportal/static *
