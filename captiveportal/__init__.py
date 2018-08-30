@@ -1,5 +1,6 @@
 import os
 from flask import Flask
+from werkzeug.contrib.fixers import ProxyFix
 
 app = Flask(__name__)
 app.config.from_object('captiveportal.default_settings')
