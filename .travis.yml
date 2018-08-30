@@ -5,7 +5,7 @@ python:
 install:
   - python setup.py develop
 before_script:
-  - FLASK_APP=captiveportal CAPTIVEPORTAL_SETTINGS=../settings.cfg flask run &
+  - FLASK_APP=captiveportal flask run &
 script:
-  - CAPTIVEPORTAL_SETTINGS=../settings.cfg python -m unittest discover -s tests
+  - python -m unittest discover -s tests
   - pkill -f FLASK_APP
