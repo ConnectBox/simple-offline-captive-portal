@@ -2,8 +2,10 @@ sudo: false  # http://docs.travis-ci.com/user/migrating-from-legacy/
 language: python
 python:
   - 3.6
+install:
+  - python setup.py develop
 before_script:
-  - make run &
+  - FLASK_APP=captiveportal CAPTIVEPORTAL_SETTINGS=../settings.cfg venv/bin/flask run &
 script:
   - make test
   - pkill -f FLASK_APP
