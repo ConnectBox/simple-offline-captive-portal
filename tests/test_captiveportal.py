@@ -1,7 +1,6 @@
 import os
 import time
 import unittest
-import captiveportal
 import requests
 
 
@@ -22,10 +21,6 @@ class CaptiveportalTestCase(unittest.TestCase):
         Make sure the ConnectBox doesn't think the client has connected
         before, so we can test captive portal behaviour
         """
-        self.app = captiveportal.app.test_client()
-        #import pdb; pdb.set_trace()
-        #[rv = self.app.get('/')
-        #self.assertIn('Welcome to Simple Offline Captive Portal', rv.data.decode())
         r = requests.delete("http://%s/_authorised_clients" %
                             (getTestTarget(),))
         r.raise_for_status()
