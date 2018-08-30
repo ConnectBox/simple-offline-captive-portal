@@ -4,7 +4,7 @@ from werkzeug.contrib.fixers import ProxyFix
 
 app = Flask(__name__)
 app.config.from_object('captiveportal.default_settings')
-app.config.from_envvar('CAPTIVEPORTAL_SETTINGS')
+#app.config.from_envvar('CAPTIVEPORTAL_SETTINGS')
 
 if not app.debug:
     import logging
