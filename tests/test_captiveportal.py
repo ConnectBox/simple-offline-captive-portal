@@ -390,15 +390,22 @@ class CaptiveportalTestCase(unittest.TestCase):
 
     def testUnknownLocalPageResponse(self):
         """
-        An unregistered local page hit does not redirect to ConnectBox content
+        An unregistered local page hit redirects to the CP welcome page
+
+        (and importantly, does not redirect to ConnectBox content)
         """
         r = requests.get("http://%s/unknown_local_page" % (getTestTarget(),),
                          allow_redirects=False)
         self.assertFalse(r.is_redirect)
+        r.raise_for_status()
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(self.CAPTIVE_PORTAL_SEARCH_TEXT, r.text)
 
     def testUnknownNonLocalPageResponse(self):
         """
-        A remote page hit does not redirect to ConnectBox content
+        A remote page hit redirects to the CP welcome page
+
+        (and importantly, does not redirect to ConnectBox content)
         """
         s = requests.Session()
         r = s.request(
@@ -407,6 +414,7 @@ class CaptiveportalTestCase(unittest.TestCase):
             allow_redirects=False,
             headers={"Host": "non-local-host.com"},
         )
+        r.raise_for_status()
         self.assertFalse(r.is_redirect)
 
 

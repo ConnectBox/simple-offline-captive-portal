@@ -16,3 +16,9 @@ if not app.debug:
     app.logger.addHandler(file_handler)
 
 import captiveportal.views
+
+@app.errorhandler(404)
+def default_view(_):
+    """Handle all URLs and send them to the captive portal welcome page"""
+    return captiveportal.views.show_connected()
+
