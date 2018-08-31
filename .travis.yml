@@ -5,10 +5,8 @@ python:
 install:
   - python setup.py develop
 before_script:
-  - CAPTIVEPORTAL_SETTINGS=settings.cfg FLASK_APP=captiveportal flask run &
+  - gunicorn --bind 127.0.0.1:5000 --log-level debug captiveportal:app &
 script:
   #- python -m unittest discover -s tests
   - curl http://127.0.0.1:5000
-  - pkill -f FLASK_APP
-after_script:
-  - cat *.log
+  - pkill -f gunicorn

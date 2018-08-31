@@ -11,5 +11,6 @@ setup(
         'flask',
         'requests',
         'ua_parser',
+        'gunicorn',
     ],
 )
