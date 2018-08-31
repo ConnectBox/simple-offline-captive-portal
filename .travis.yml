@@ -5,8 +5,10 @@ python:
 install:
   - python setup.py develop
 before_script:
-  - gunicorn --bind 127.0.0.1:5000 --log-level debug captiveportal:app &
+  - gunicorn --error-logfile=./cp-err.log --bind 127.0.0.1:5000 --log-level debug captiveportal:app &
 script:
   #- python -m unittest discover -s tests
   - curl http://127.0.0.1:5000
   - pkill -f gunicorn
+after_script:
+  - cat ./cp-err.log
