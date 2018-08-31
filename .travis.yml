@@ -5,7 +5,8 @@ python:
 install:
   - python setup.py develop
 before_script:
-  - gunicorn --bind 127.0.0.1:5000 --log-level debug captiveportal:app
+  - nohup gunicorn --bind 127.0.0.1:5000 --log-level debug captiveportal:app
+  - sleep 5
 script:
   #- python -m unittest discover -s tests
   - curl http://127.0.0.1:5000
