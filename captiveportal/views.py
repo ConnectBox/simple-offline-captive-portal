@@ -50,6 +50,26 @@ def client_is_rejoining_network():
 def is_new_captive_portal_session():
     return secs_since_last_session_start() > MAX_ASSUMED_CP_SESSION_TIME_SECS
 
+def device_requires_ok_press(ua_str):
+    """
+    Only some devices need an OK press to complete CP workflow
+
+    For some devices it's a distraction, for others it does bad things
+    This user agent detection is against the ua that shows the text, rather
+    than one of the other UAs that performs connectivity testing
+
+    Currently, only Android >= 6 needs an OK press.
+    """
+    if "Android" not in ua_str:
+        return False
+
+    user_agent = user_agent_parser.Parse(ua_str)
+    # Don't assume that everything has an os.major that can be cast to an int.
+    try:
+        return int(user_agent["os"]["major"]) >= 6
+    except ValueError:
+        return False
+
 
 def get_link_type(ua_str):
     """Return whether the device can show useable hrefs
@@ -195,6 +215,7 @@ def show_connected():
         LINK_OPS=LINK_OPS,
         browser_icon=browser_icon,
         link_type=get_link_type(ua_str),
+        show_ok=device_requires_ok_press(ua_str),
     )
 
 
