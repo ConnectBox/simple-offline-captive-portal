@@ -148,7 +148,6 @@ class CaptiveportalTestCase(unittest.TestCase):
         #    and allows the user to click on the link
         self.assertIn("<BODY>\nSuccess\n</BODY>", r.text)
 
-    @unittest.skip("Skip while determining correct behaviour")
     def testAndroid5CaptivePortalResponse(self):
         """Android 5 ConnectBox connection workflow
 

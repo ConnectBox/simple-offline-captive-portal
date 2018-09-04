@@ -9,7 +9,7 @@ Example user-agent: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, 
 * If has not received a 204 response for its magic URL by the time the user is trying to use the network, the device will fallback to cellular connectivity if it has cellular connectivity
 * This agent requests its magic URL after each action (clicking a link, submitting a form) in the captive portal browser
 * It will request its magic URL soon (1-60 seconds) after the user selects "Use network as-is" from the captive portal browser.
-* This agent periodically requests it's magic URL from time to time (minutes).
+* This agent periodically requests it's magic URL from time to time and will raise the "Sign-in to WiFi Network" sheet if it no longer receives a 204. The period on the requests includes an back-off component - one example, roughly: 30s, 30s, 30s, 60s, 60s, 60s, 90s, 180s, 300s
 * When it reconnects to the same Wifi network after Wifi is switched off, it begins to check its magic URL and also alternates with the /gen_204 magic URL (this is the only time this alternate magic URL is seen), however it does not seem to consider a 204 response as indicative of internet access. Puzzling...
 
 # The "Dalvik" agent

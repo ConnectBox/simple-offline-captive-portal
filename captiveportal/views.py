@@ -12,17 +12,17 @@ LINK_OPS = {
     "HREF": "href",
 }
 # pylint: disable=invalid-name
-_last_captive_portal_session_start_time = {}
+_client_last_seen_time = {}
 MAX_ASSUMED_CP_SESSION_TIME_SECS = 300
 MAX_TIME_WITHOUT_SHOWING_CP_SECS = 86400  # 1 day
 
 _android_has_acked_cp_instructions = {}
 
 
-def secs_since_last_session_start():
+def secs_since_last_seen():
     ip_addr_str = werkzeug.wsgi.get_host(request.environ)
     last_session_start_time = \
-        _last_captive_portal_session_start_time.get(ip_addr_str, 0)
+        _client_last_seen_time.get(ip_addr_str, 0)
     return time.time() - last_session_start_time
 
 
@@ -39,16 +39,13 @@ def client_is_rejoining_network():
     same captive portal session, and we do this by saying that a rejoin
     is only happening if it's more than MAX_ASSUMED_CP_SESSION_TIME_SECS
     after the last session started
-
-    We base our recency criteria on the DHCP lease time
     """
-    secs_since_last_sess_start = secs_since_last_session_start()
-    return secs_since_last_sess_start < MAX_TIME_WITHOUT_SHOWING_CP_SECS and \
-        secs_since_last_sess_start > MAX_ASSUMED_CP_SESSION_TIME_SECS
+    return secs_since_last_seen() < MAX_TIME_WITHOUT_SHOWING_CP_SECS and \
+        secs_since_last_seen() > MAX_ASSUMED_CP_SESSION_TIME_SECS
 
 
 def is_new_captive_portal_session():
-    return secs_since_last_session_start() > MAX_ASSUMED_CP_SESSION_TIME_SECS
+    return secs_since_last_seen() > MAX_TIME_WITHOUT_SHOWING_CP_SECS
 
 def device_requires_ok_press(ua_str):
     """
@@ -131,13 +128,9 @@ def android_cpa_needs_204_now():
     return False
 
 
-def register_captive_portal_session_start():
+def register_client_last_seen_time():
     ip_addr_str = werkzeug.wsgi.get_host(request.environ)
-    last = _last_captive_portal_session_start_time.get(ip_addr_str, 0)
-    if last < time.time() - MAX_ASSUMED_CP_SESSION_TIME_SECS:
-        # Treat as a new session and update session start time
-        _last_captive_portal_session_start_time[ip_addr_str] = \
-            time.time()
+    _client_last_seen_time[ip_addr_str] = time.time()
 
 
 def handle_ios_macos():
@@ -151,11 +144,11 @@ def handle_ios_macos():
     """
     if client_is_rejoining_network():
         # Don't raise captive portal browser
-        register_captive_portal_session_start()
+        register_client_last_seen_time()
         return render_template("success.html")
 
     if is_new_captive_portal_session():
-        register_captive_portal_session_start()
+        register_client_last_seen_time()
         # raise captive portal browser by not showing success.html
         return show_connected()
 
@@ -169,16 +162,18 @@ def handle_ios_macos():
     # Show connected message after initial interaction
     return show_connected()
 
-
 def handle_android():
     """Handle Android interactions"""
-    # We don't check if the client is rejoining the network, because the
-    # behaviour is different and cellular 7.1+ devices don't detect the
-    #  internet despite being sent a 204.
     source_ip = werkzeug.wsgi.get_host(request.environ)
     if is_new_captive_portal_session():
-        if source_ip in _android_has_acked_cp_instructions:
-            del _android_has_acked_cp_instructions[source_ip]
+        # reset state in order to raise the captive portal browser
+        # As >= v7.1 "X11 agent" regularly hits the generate_204
+        #  endpoint, in >=7.1 the check isn't really about whether this is a
+        #  new captive portal session and more about whether we haven't seen
+        #  the device "recently"
+        # this code path is also used by < v7.1, but it's ok to reset state
+        #  for those devices too because it will still raise the cp browser
+        _do_remove_client(source_ip)
 
     # The X11 captive portal agent periodically checks for internet access.
     # It's the only agent that hits this endpoint after the captive portal
@@ -187,7 +182,7 @@ def handle_android():
     #  session start time means that eventually this won't been seen as an
     #  existing captive portal session and we won't send a 204, which
     #  will cause the "sign-in to wifi" sheet to come up.
-    register_captive_portal_session_start()
+    register_client_last_seen_time()
 
     if request.method == "POST":
         _android_has_acked_cp_instructions[source_ip] = True
@@ -219,23 +214,25 @@ def show_connected():
     )
 
 
-@app.route('/_authorised_clients', methods=['DELETE'])
-def remove_authorised_client():
-    """Forgets that a client has been seen recently to allow running tests"""
-    source_ip = werkzeug.wsgi.get_host(request.environ)
-    if source_ip in _last_captive_portal_session_start_time:
-        del _last_captive_portal_session_start_time[source_ip]
+def _do_remove_client(source_ip):
+    if source_ip in _client_last_seen_time:
+        del _client_last_seen_time[source_ip]
 
     if source_ip in _android_has_acked_cp_instructions:
         del _android_has_acked_cp_instructions[source_ip]
 
+
+@app.route('/_authorised_clients', methods=['DELETE'])
+def remove_authorised_client():
+    """Forgets that a client has been seen recently to allow running tests"""
+    _do_remove_client(werkzeug.wsgi.get_host(request.environ))
     return Response(status=204)
 
 
 @app.route('/kindle-wifi/wifistub.html', methods=["GET", "POST"])
 def handle_wifistub_html():
     # Captive Portal check for Amazon Kindle Fire
-    register_captive_portal_session_start()
+    register_client_last_seen_time()
     return show_connected()
 
 
@@ -243,7 +240,7 @@ def handle_wifistub_html():
 def handle_ncsi_txt():
     # Captive Portal check for Windows
     # See: https://technet.microsoft.com/en-us/library/cc766017(v=ws.10).aspx
-    register_captive_portal_session_start()
+    register_client_last_seen_time()
     return show_connected()
 
 
