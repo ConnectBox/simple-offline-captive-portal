@@ -116,7 +116,7 @@ def android_cpa_needs_204_now():
     try:
         #
         v_six_or_above = int(user_agent["os"]["major"]) >= 6
-    except ValueError:
+    except (ValueError, TypeError):
         v_six_or_above = False
 
     # 5.0.1 shows a confusing webpage unavailable page when Dalvik receives
