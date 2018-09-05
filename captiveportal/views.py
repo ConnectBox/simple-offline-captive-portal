@@ -64,7 +64,7 @@ def device_requires_ok_press(ua_str):
     # Don't assume that everything has an os.major that can be cast to an int.
     try:
         return int(user_agent["os"]["major"]) >= 6
-    except ValueError:
+    except (ValueError, TypeError):
         return False
 
 
@@ -114,7 +114,6 @@ def android_cpa_needs_204_now():
     # Let's not assume that everything has an os.major or minor that can be
     #  cast to an int.
     try:
-        #
         v_six_or_above = int(user_agent["os"]["major"]) >= 6
     except (ValueError, TypeError):
         v_six_or_above = False
