@@ -111,16 +111,11 @@ def android_cpa_needs_204_now():
         # Only show a 204 if the user has pressed "OK" on the CP screen
         return _android_has_acked_cp_instructions.get(source_ip, False)
 
-    # Let's not assume that everything has an os.major or minor that can be
-    #  cast to an int.
-    try:
-        v_six_or_above = int(user_agent["os"]["major"]) >= 6
-    except (ValueError, TypeError):
-        v_six_or_above = False
-
     # 5.0.1 shows a confusing webpage unavailable page when Dalvik receives
-    #  a 204 response after a POST.
-    if v_six_or_above and "Dalvik" in ua_str:
+    #  a 204 response after a POST, but as we never present an OK button to
+    #  5.0.1 (because device_requires_ok_press never passes), we don't have
+    #  to worry about a specific 5.0.1 check here.
+    if "Dalvik" in ua_str:
         return _android_has_acked_cp_instructions.get(source_ip, False)
 
     # We're the Android Webkit agent, never send a 204
