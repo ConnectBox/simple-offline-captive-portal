@@ -2,7 +2,6 @@ import time
 from flask import redirect, render_template, request, Response, url_for
 import requests
 from ua_parser import user_agent_parser
-import werkzeug
 
 from captiveportal import app
 
@@ -20,9 +19,8 @@ _android_has_acked_cp_instructions = {}
 
 
 def secs_since_last_seen():
-    ip_addr_str = werkzeug.wsgi.get_host(request.environ)
     last_session_start_time = \
-        _client_last_seen_time.get(ip_addr_str, 0)
+        _client_last_seen_time.get(request.remote_addr, 0)
     return time.time() - last_session_start_time
 
 
@@ -104,27 +102,25 @@ def android_cpa_needs_204_now():
     """
     ua_str = request.headers.get("User-agent", "")
     user_agent = user_agent_parser.Parse(ua_str)
-    source_ip = werkzeug.wsgi.get_host(request.environ)
 
     if "Android" not in ua_str:
         # We're the "X11" agent in Android 7.1+
         # Only show a 204 if the user has pressed "OK" on the CP screen
-        return _android_has_acked_cp_instructions.get(source_ip, False)
+        return _android_has_acked_cp_instructions.get(request.remote_addr, False)
 
     # 5.0.1 shows a confusing webpage unavailable page when Dalvik receives
     #  a 204 response after a POST, but as we never present an OK button to
     #  5.0.1 (because device_requires_ok_press never passes), we don't have
     #  to worry about a specific 5.0.1 check here.
     if "Dalvik" in ua_str:
-        return _android_has_acked_cp_instructions.get(source_ip, False)
+        return _android_has_acked_cp_instructions.get(request.remote_addr, False)
 
     # We're the Android Webkit agent, never send a 204
     return False
 
 
 def register_client_last_seen_time():
-    ip_addr_str = werkzeug.wsgi.get_host(request.environ)
-    _client_last_seen_time[ip_addr_str] = time.time()
+    _client_last_seen_time[request.remote_addr] = time.time()
 
 
 def handle_ios_macos():
@@ -158,7 +154,6 @@ def handle_ios_macos():
 
 def handle_android():
     """Handle Android interactions"""
-    source_ip = werkzeug.wsgi.get_host(request.environ)
     if is_new_captive_portal_session():
         # reset state in order to raise the captive portal browser
         # As >= v7.1 "X11 agent" regularly hits the generate_204
@@ -167,7 +162,7 @@ def handle_android():
         #  the device "recently"
         # this code path is also used by < v7.1, but it's ok to reset state
         #  for those devices too because it will still raise the cp browser
-        _do_remove_client(source_ip)
+        _do_remove_client(request.remote_addr)
 
     # The X11 captive portal agent periodically checks for internet access.
     # It's the only agent that hits this endpoint after the captive portal
@@ -179,7 +174,7 @@ def handle_android():
     register_client_last_seen_time()
 
     if request.method == "POST":
-        _android_has_acked_cp_instructions[source_ip] = True
+        _android_has_acked_cp_instructions[request.remote_addr] = True
 
     if android_cpa_needs_204_now():
         return Response(status=204)
@@ -219,7 +214,7 @@ def _do_remove_client(source_ip):
 @app.route('/_authorised_clients', methods=['DELETE'])
 def remove_authorised_client():
     """Forgets that a client has been seen recently to allow running tests"""
-    _do_remove_client(werkzeug.wsgi.get_host(request.environ))
+    _do_remove_client(request.remote_addr)
     return Response(status=204)
 
 
