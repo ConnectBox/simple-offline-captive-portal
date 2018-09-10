@@ -1,3 +1,4 @@
+import ipaddress
 import time
 from flask import redirect, render_template, request, Response, url_for
 import requests
@@ -216,6 +217,46 @@ def remove_authorised_client():
     """Forgets that a client has been seen recently to allow running tests"""
     _do_remove_client(request.remote_addr)
     return Response(status=204)
+
+
+@app.route('/handle_dhcp_event', methods=["POST"])
+def handle_dhcp_event():
+    """
+    Hook for handling actions resulting from dhcp events
+
+    This callback will not be fired unless it's configured in the dhcp server
+    e.g. the --dhcp-script option in dnsmasq
+
+    This should be protected in the webserver so that it cannot be accessed
+    except from localhost
+    """
+    try:
+        dhcp_ip = ipaddress.ip_address(request.values.get("dhcp_ip", ""))
+    except ValueError:
+        return "dhcp_id: %s is not a valid ip address" % \
+            request.values.get("dhcp_ip", ""), 400
+
+    operation = request.values.get("operation", "")
+    if operation == "old":
+        # Existing lease
+        # When rejoining the network, Android 7.1+ doesn't associate a
+        #  204 with having internet access, and thus presents a
+        #  "Connected. No internet access" even though all the required 204
+        #  has been given. To force the popup, when the device rejoins the
+        #  network, we have a short time between the DHCP lease being assigned
+        #  and the first captive portal hit being made, and in that time we
+        #  reset some of the captive portal state so that the "X11" agent
+        #  receives a 200 response, thus raising the "Sign in to network"
+        #  sheet
+        # Need to check... they may not have clicked ok
+        if dhcp_ip.exploded in _android_has_acked_cp_instructions:
+            del _android_has_acked_cp_instructions[dhcp_ip.exploded]
+        return "", 204
+    elif operation in ("add", "del"):
+        # Currently, we don't do anything with these operations
+        return "", 204
+    else:
+        return "Invalid operation: %s" % (operation,), 400
 
 
 @app.route('/kindle-wifi/wifistub.html', methods=["GET", "POST"])
