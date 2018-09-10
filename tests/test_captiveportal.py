@@ -422,30 +422,15 @@ class CaptiveportalTestCase(unittest.TestCase):
             requests.post,
            "http://%s/handle_dhcp_event" % (getTestTarget(),)
         )
-        # missing dhcp_ip
-        r = endpoint(data={"operation":"add"})
-        self.assertEqual(r.status_code, 400)
-        # missing operation
-        r = endpoint(data={"dhcp_ip":"1.2.3.4"})
-        self.assertEqual(r.status_code, 400)
-        # bad operation
-        r = endpoint(data={"operation":"bad", "dhcp_ip":"1.2.3.4"})
-        self.assertEqual(r.status_code, 400)
+        # unknown operation - be tolerant
+        r = endpoint(data={"operation":"bad"})
+        self.assertEqual(r.status_code, 204)
         # bad ip
-        r = endpoint(data={"operation":"add", "dhcp_ip":"not.an.ip"})
+        r = endpoint(data={"operation":"old", "dhcp_ip":"not.an.ip"})
         self.assertEqual(r.status_code, 400)
         # good (valid op1)
-        r = endpoint(data={"operation":"add", "dhcp_ip":"1.2.3.4"})
-        self.assertEqual(r.status_code, 204)
-        # good (valid op2)
-        r = endpoint(data={"operation":"del", "dhcp_ip":"1.2.3.4"})
-        self.assertEqual(r.status_code, 204)
-        # good (valid op3)
         r = endpoint(data={"operation":"old", "dhcp_ip":"1.2.3.4"})
         self.assertEqual(r.status_code, 204)
-
-
-
 
 
 if __name__ == '__main__':

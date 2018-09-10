@@ -230,15 +230,17 @@ def handle_dhcp_event():
     This should be protected in the webserver so that it cannot be accessed
     except from localhost
     """
-    try:
-        dhcp_ip = ipaddress.ip_address(request.values.get("dhcp_ip", ""))
-    except ValueError:
-        return "dhcp_id: %s is not a valid ip address" % \
-            request.values.get("dhcp_ip", ""), 400
-
     operation = request.values.get("operation", "")
-    if operation == "old":
+    if not operation:
+        return "Missing operation", 400
+    elif operation == "old":
         # Existing lease
+        try:
+            dhcp_ip = ipaddress.ip_address(request.values.get("dhcp_ip", ""))
+        except ValueError:
+            return "dhcp_id: %s is not a valid ip address" % \
+                request.values.get("dhcp_ip", ""), 400
+
         # When rejoining the network, Android 7.1+ doesn't associate a
         #  204 with having internet access, and thus presents a
         #  "Connected. No internet access" even though all the required 204
@@ -252,11 +254,10 @@ def handle_dhcp_event():
         if dhcp_ip.exploded in _android_has_acked_cp_instructions:
             del _android_has_acked_cp_instructions[dhcp_ip.exploded]
         return "", 204
-    elif operation in ("add", "del"):
-        # Currently, we don't do anything with these operations
-        return "", 204
     else:
-        return "Invalid operation: %s" % (operation,), 400
+        # Currently, we don't do anything with other operations and we don't
+        #  attempt to validate that it's even a known operation
+        return "", 204
 
 
 @app.route('/kindle-wifi/wifistub.html', methods=["GET", "POST"])
