@@ -255,6 +255,47 @@ class CaptiveportalTestCase(unittest.TestCase):
         # We don't want to show URLs in this captive portal browser
         self.assertNotIn("href=", r.text.lower())
 
+    def testAndroidShowsOkButton(self):
+        """
+        The OK button is required for Android7+ workflow
+
+        We do UA parsing so that we don't show it to <= A5 clients but
+        so make sure our UA logic is correct
+        """
+        a6_ua = "Mozilla/5.0 (Linux; Android 6.0.1; " \
+                "Nexus 7 Build/MOB30X; wv) AppleWebKit/537.36 " \
+                "(KHTML, like Gecko) Version/4.0 Chrome/61.0.3163.98 " \
+                "Safari/537.36"
+        # BLU Vivo
+        a70_ua = "Mozilla/5.0 (Linux; Android 7.0; Vivo XL2 Build/NRD90M; " \
+                 "wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 " \
+                 "Chrome/67.0.3396.87 Mobile Safari/537.36"
+        # Sony Xperia XZ
+        a71_ua = "Mozilla/5.0 (Linux; Android 7.1.1; G8231 " \
+                 "Build/41.2.A.0.219; wv) AppleWebKit/537.36 " \
+                 "(KHTML, like Gecko) Version/4.0 Chrome/59.0.3071.125 " \
+                 "Mobile Safari/537.36"
+        # Xiaomi Mi A1
+        a80_ua = "Mozilla/5.0 (Linux; Android 8.0.0; Mi A1 " \
+                 "Build/OPR1.170623.026; wv) AppleWebKit/537.36 " \
+                 "(KHTML, like Gecko) Version/4.0 Chrome/67.0.3396.87 " \
+                 "Mobile Safari/537.36"
+        # XXX Need an A8.1
+        # Pixel 1
+        a9_ua = "Mozilla/5.0 (Linux; Android 9; " \
+                "Pixel Build/PPR1.180610.009; wv) AppleWebKit/537.36 " \
+                "(KHTML, like Gecko) Version/4.0 Chrome/70.0.3538.64 " \
+                "Mobile Safari/537.36"
+        headers = requests.utils.default_headers()
+        for ua in (a6_ua, a70_ua, a71_ua, a80_ua, a9_ua):
+            headers.update({"User-Agent": ua})
+            r = requests.get("http://%s/generate_204" %
+                (getTestTarget(),), headers=headers)
+            r.raise_for_status()
+            self.assertIn("OK</button></form>", r.text)
+        # TODO - add old android versions, showing they don't receive
+        #  an OK
+
     def testWindowsCaptivePortalResponse(self):
         """Bounce Windows to the captive portal welcome page"""
         r = requests.get("http://%s/ncsi.txt" % (getTestTarget(),))

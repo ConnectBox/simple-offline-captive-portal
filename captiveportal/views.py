@@ -60,11 +60,15 @@ def device_requires_ok_press(ua_str):
         return False
 
     user_agent = user_agent_parser.Parse(ua_str)
-    # Don't assume that everything has an os.major that can be cast to an int.
+    # Don't assume that everything has an os.major that can be cast to an int
+    #  but as old android devices are tolerant of an OK button press (even
+    #  though the UX isn't idea) and newer Android devices with cellular plans
+    #  simply won't work without one, we show the OK button if we can't work
+    #  out what to do
     try:
         return int(user_agent["os"]["major"]) >= 6
     except (ValueError, TypeError):
-        return False
+        return True
 
 
 def get_link_type(ua_str):
