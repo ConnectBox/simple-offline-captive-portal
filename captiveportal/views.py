@@ -200,7 +200,7 @@ def show_connected():
         url_for('static', filename='go-animation-%s.gif' % (icon_type,))
     return render_template(
         "connected.html",
-        connectbox_url="http://go",
+        connectbox_url="http://wi.fi",
         LINK_OPS=LINK_OPS,
         browser_icon=browser_icon,
         link_type=get_link_type(ua_str),

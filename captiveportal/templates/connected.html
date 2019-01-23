@@ -5,12 +5,12 @@
 </HEAD>
 <BODY>
 {% if link_type == "href" %}
-<a href='{{ connectbox_url }}'>Go to http://go</a>
+<a href='{{ connectbox_url }}'>Go to http://wi.fi</a>
 {% else %}
 <strong>Go to <span style="color: #0000ff;">{{ connectbox_url }}</span></strong>
 {% endif %}
 <p>
-<img src="{{ browser_icon }}" alt="Type http://go in your browser"/>
+<img src="{{ browser_icon }}" alt="Type http://wi.fi in your browser"/>
 </p>
 {% if show_ok %}
 <form action="" method="POST"><button style="width: 120px; height: 45px">OK</button></form>
