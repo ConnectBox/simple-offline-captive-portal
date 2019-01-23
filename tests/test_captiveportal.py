@@ -65,7 +65,7 @@ class CaptiveportalTestCase(unittest.TestCase):
                          (getTestTarget(),), headers=headers)
         r.raise_for_status()
         # 4. We send a welcome page, with a link to click
-        self.assertIn("<a href='http://go'", r.text)
+        self.assertIn("<a href='http://wi.fi'", r.text)
         # 5. Device sends wispr hotspot-detect.html request
         headers = requests.utils.default_headers()
         headers.update({"User-Agent": "CaptiveNetworkSupport-325.10.1 wispr"})
@@ -102,7 +102,7 @@ class CaptiveportalTestCase(unittest.TestCase):
         #    exiting of the captive portal browser by clicking on a link. We
         #    do send a text URL for cutting and pasting
         self.assertNotIn("<a href=", r.text)
-        self.assertIn("http://go", r.text)
+        self.assertIn("http://wi.fi", r.text)
         # 5. Device sends wispr hotspot-detect.html request
         headers = requests.utils.default_headers()
         headers.update({"User-Agent": "CaptiveNetworkSupport-346.50.1 wispr"})
@@ -137,7 +137,7 @@ class CaptiveportalTestCase(unittest.TestCase):
                          (getTestTarget(),), headers=headers)
         r.raise_for_status()
         # 4. Connectbox sends a welcome page, with a link to click
-        self.assertIn("<a href='http://go'", r.text)
+        self.assertIn("<a href='http://wi.fi'", r.text)
         # 5. Device sends wispr hotspot-detect.html request
         headers = requests.utils.default_headers()
         headers.update({"User-Agent": "CaptiveNetworkSupport-346.50.1 wispr"})
