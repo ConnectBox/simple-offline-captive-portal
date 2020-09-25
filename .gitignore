@@ -6,3 +6,4 @@ settings.cfg
 *.log*
 *.swp
 .DS_Store
+.idea/
