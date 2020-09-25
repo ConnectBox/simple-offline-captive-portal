@@ -1,16 +1,16 @@
 sudo: false
 language: python
 python:
-- 3.6
+- 3.5
 install:
 - python setup.py develop
 before_script:
-- gunicorn --bind 127.0.0.1:5000 --log-level debug captiveportal:app &
+- make test &
 - sleep 5
 script:
 - python -m unittest discover -s tests
 after_script:
-- pkill -f gunicorn
+- pkill -f flask
 notifications:
   pushover:
     api_key:
