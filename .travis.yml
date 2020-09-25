@@ -5,12 +5,14 @@ python:
 install:
 - python setup.py develop
 before_script:
-- make run &
+- which gunicorn
+- gunicorn -v
+- gunicorn --bind 127.0.0.1:5000 --log-level debug captiveportal:app &
 - sleep 5
 script:
 - python -m unittest discover -s tests
 after_script:
-- pkill -f flask
+- pkill -f gunicorn
 notifications:
   pushover:
     api_key:
