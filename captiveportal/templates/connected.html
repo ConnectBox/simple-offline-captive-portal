@@ -1,16 +1,16 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
 <HTML>
 <HEAD>
-    <TITLE>Connected to Connectbox	Wifi</TITLE>
+    <TITLE>Connected to {{	Wifi</TITLE>
 </HEAD>
 <BODY>
 {% if link_type == "href" %}
-<a href='{{ connectbox_url }}'>Go to http://wi.fi</a>
+<a href='{{ connectbox_url }}'>Go to http://{{ wifi_data_check_turnoff }}</a>
 {% else %}
 <strong>Go to <span style="color: #0000ff;">{{ connectbox_url }}</span></strong>
 {% endif %}
 <p>
-<img src="{{ browser_icon }}" alt="Type http://wi.fi in your browser"/>
+<img src="{{ browser_icon }}" alt="Type http://gowifi.org in your browser"/>
 </p>
 {% if show_ok %}
 <form action="" method="POST"><button style="width: 120px; height: 45px">OK</button></form>
