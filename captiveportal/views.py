@@ -1,7 +1,6 @@
 import ipaddress
 import time
-from flask import redirect, render_template, request, Response, url_for
-import requests
+from flask import jsonify, redirect, render_template, request, Response, url_for
 from ua_parser import user_agent_parser
 
 from captiveportal import app
@@ -54,21 +53,34 @@ def device_requires_ok_press(ua_str):
     This user agent detection is against the ua that shows the text, rather
     than one of the other UAs that performs connectivity testing
 
-    Currently, only Android >= 6 needs an OK press.
+    Android >= 6 needs an OK press. Android 7.1+ uses an X11-style UA string
+    in its captive portal browser (not the Dalvik agent), so "Android" does
+    not appear in the UA — we must handle that case separately.
     """
-    if "Android" not in ua_str:
+    user_agent = user_agent_parser.Parse(ua_str)
+    os_family = user_agent["os"]["family"]
+
+    # iOS and MacOS never need the OK button
+    if os_family in ("iOS", "Mac OS X"):
         return False
 
-    user_agent = user_agent_parser.Parse(ua_str)
-    # Don't assume that everything has an os.major that can be cast to an int
-    #  but as old android devices are tolerant of an OK button press (even
-    #  though the UX isn't idea) and newer Android devices with cellular plans
-    #  simply won't work without one, we show the OK button if we can't work
-    #  out what to do
-    try:
-        return int(user_agent["os"]["major"]) >= 6
-    except (ValueError, TypeError):
-        return True
+    if os_family == "Android":
+        # Don't assume that everything has an os.major that can be cast to an int
+        #  but as old android devices are tolerant of an OK button press (even
+        #  though the UX isn't ideal) and newer Android devices with cellular plans
+        #  simply won't work without one, we show the OK button if we can't work
+        #  out what to do
+        try:
+            return int(user_agent["os"]["major"]) >= 6
+        except (ValueError, TypeError):
+            return True
+
+    # Android 7.1+ captive portal browser identifies as an X11 agent
+    # (ua_parser reports os_family as "Other", not "Android").
+    # The OK button POST to /generate_204 is what sets the ack flag that
+    # causes android_cpa_needs_204_now() to return True and complete the
+    # captive portal handshake — without it the device stays in portal state.
+    return True
 
 
 def get_link_type(ua_str):
@@ -81,19 +93,32 @@ def get_link_type(ua_str):
      don't want that, so we just show text
     """
     user_agent = user_agent_parser.Parse(ua_str)
-    if user_agent["os"]["family"] == "iOS" and \
-            user_agent["os"]["major"] in ("9", "11"):
-        # iOS 9 and iOS 11 can open links from the captive portal browser
-        #  in the system browser. iOS 10 cannot - the link opens in the
-        #  captive portal browser itself.
-        return LINK_OPS["HREF"]
 
-    if user_agent["os"]["family"] == "Mac OS X" and \
-            user_agent["os"]["major"] == "10" and \
-       user_agent["os"]["minor"] in ("12", "13"):
-        # Sierra (10.12) and High Sierra (10.13) can open links from the
-        #  captive portal browser in the system browser
-        return LINK_OPS["HREF"]
+    if user_agent["os"]["family"] == "iOS":
+        # iOS 9+ can open links in Safari from the captive portal browser,
+        #  EXCEPT iOS 10 which opens links inside the captive portal browser.
+        # iOS 14+ uses WKWebView which also supports opening links in Safari.
+        try:
+            major = int(user_agent["os"]["major"])
+            if major >= 9 and major != 10:
+                return LINK_OPS["HREF"]
+        except (ValueError, TypeError):
+            pass
+        return LINK_OPS["TEXT"]
+
+    if user_agent["os"]["family"] == "Mac OS X":
+        # Sierra (10.12) and later, including macOS 11 (Big Sur) through
+        #  macOS 15 (Sequoia), can open links from the captive portal browser.
+        # ua_parser reports macOS 11+ as major=10 minor=16 or major=11+
+        #  depending on version, so check both forms.
+        try:
+            major = int(user_agent["os"]["major"])
+            minor = int(user_agent["os"]["minor"] or "0")
+            if major >= 11 or (major == 10 and minor >= 12):
+                return LINK_OPS["HREF"]
+        except (ValueError, TypeError):
+            pass
+        return LINK_OPS["TEXT"]
 
     return LINK_OPS["TEXT"]
 
@@ -106,7 +131,6 @@ def android_cpa_needs_204_now():
     to cellular if it doesn't get a 204 at the right time.
     """
     ua_str = request.headers.get("User-agent", "")
-    user_agent = user_agent_parser.Parse(ua_str)
 
     if "Android" not in ua_str:
         # We're the "X11" agent in Android 7.1+
@@ -273,8 +297,16 @@ def handle_wifistub_html():
 
 @app.route('/ncsi.txt', methods=["GET", "POST"])
 def handle_ncsi_txt():
-    # Captive Portal check for Windows
+    # Captive Portal check for Windows (up to Windows 10)
     # See: https://technet.microsoft.com/en-us/library/cc766017(v=ws.10).aspx
+    register_client_last_seen_time()
+    return show_connected()
+
+
+@app.route('/connecttest.txt', methods=["GET", "POST"])
+def handle_connecttest_txt():
+    # Captive Portal check for Windows 11
+    # Windows 11 added this path alongside the older /ncsi.txt probe
     register_client_last_seen_time()
     return show_connected()
 
@@ -305,3 +337,14 @@ def handle_default_android():
 @app.route('/gen_204', methods=["GET", "POST"])
 def handle_fallback_android():
     return handle_android()
+
+
+# RFC 8908 Captive Portal API - supported by iOS 14+, Android 11+, macOS Monterey+
+# Old devices never request this URL so adding it has no impact on them.
+# New devices use this to discover the portal URL directly instead of probing.
+@app.route('/.well-known/captive-portal', methods=["GET"])
+def captive_portal_api():
+    return jsonify({
+        "captive": True,
+        "user-portal-url": "http://gowifi.org"
+    })
