@@ -225,6 +225,7 @@ def show_connected():
     return render_template(
         "connected.html",
         connectbox_url="http://gowifi.org",
+        connectbox_hostname=app.config.get("CONNECTBOX_HOSTNAME", "ConnectBox"),
         LINK_OPS=LINK_OPS,
         browser_icon=browser_icon,
         link_type=get_link_type(ua_str),
