@@ -81,19 +81,29 @@ def get_link_type(ua_str):
      don't want that, so we just show text
     """
     user_agent = user_agent_parser.Parse(ua_str)
-    if user_agent["os"]["family"] == "iOS" and \
-            user_agent["os"]["major"] in ("9", "11"):
-        # iOS 9 and iOS 11 can open links from the captive portal browser
-        #  in the system browser. iOS 10 cannot - the link opens in the
-        #  captive portal browser itself.
-        return LINK_OPS["HREF"]
+    if user_agent["os"]["family"] == "iOS":
+        # iOS 9 and iOS 11+ can open links from the captive portal browser
+        # in the system browser. iOS 10 cannot - the link opens in the
+        # captive portal browser itself. iOS 12+ restored the ability to
+        # escape to the system browser.
+        try:
+            major = int(user_agent["os"]["major"] or 0)
+            if major == 9 or major >= 11:
+                return LINK_OPS["HREF"]
+        except (ValueError, TypeError):
+            pass
 
-    if user_agent["os"]["family"] == "Mac OS X" and \
-            user_agent["os"]["major"] == "10" and \
-       user_agent["os"]["minor"] in ("12", "13"):
-        # Sierra (10.12) and High Sierra (10.13) can open links from the
-        #  captive portal browser in the system browser
-        return LINK_OPS["HREF"]
+    if user_agent["os"]["family"] == "Mac OS X":
+        # macOS 10.12 (Sierra) and later can open links from the captive
+        # portal browser in the system browser. macOS 11+ (Big Sur, Monterey,
+        # Ventura, Sonoma, Sequoia) uses a new major version numbering scheme.
+        try:
+            major = int(user_agent["os"]["major"] or 0)
+            minor = int(user_agent["os"]["minor"] or 0)
+            if major >= 11 or (major == 10 and minor >= 12):
+                return LINK_OPS["HREF"]
+        except (ValueError, TypeError):
+            pass
 
     return LINK_OPS["TEXT"]
 
@@ -273,8 +283,15 @@ def handle_wifistub_html():
 
 @app.route('/ncsi.txt', methods=["GET", "POST"])
 def handle_ncsi_txt():
-    # Captive Portal check for Windows
+    # Captive Portal check for Windows (legacy)
     # See: https://technet.microsoft.com/en-us/library/cc766017(v=ws.10).aspx
+    register_client_last_seen_time()
+    return show_connected()
+
+
+@app.route('/connecttest.txt', methods=["GET", "POST"])
+def handle_connecttest_txt():
+    # Captive Portal check for Windows 10/11 (msftconnecttest.com)
     register_client_last_seen_time()
     return show_connected()
 
