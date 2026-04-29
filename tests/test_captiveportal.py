@@ -15,6 +15,7 @@ class CaptiveportalTestCase(unittest.TestCase):
     # Something that we will find in the CP welcome page
     CAPTIVE_PORTAL_SEARCH_TEXT = \
         "<TITLE>Connected to ConnectBox Wifi</TITLE>"
+    CONNECTBOX_URL = "http://gowifi.org"
 
     def setUp(self):
         """Simulate first connection
@@ -65,7 +66,7 @@ class CaptiveportalTestCase(unittest.TestCase):
                          (getTestTarget(),), headers=headers)
         r.raise_for_status()
         # 4. We send a welcome page, with a link to click
-        self.assertIn("<a href='http://wi.fi'", r.text)
+        self.assertIn("<a href='%s'" % self.CONNECTBOX_URL, r.text)
         # 5. Device sends wispr hotspot-detect.html request
         headers = requests.utils.default_headers()
         headers.update({"User-Agent": "CaptiveNetworkSupport-325.10.1 wispr"})
@@ -102,7 +103,7 @@ class CaptiveportalTestCase(unittest.TestCase):
         #    exiting of the captive portal browser by clicking on a link. We
         #    do send a text URL for cutting and pasting
         self.assertNotIn("<a href=", r.text)
-        self.assertIn("http://wi.fi", r.text)
+        self.assertIn(self.CONNECTBOX_URL, r.text)
         # 5. Device sends wispr hotspot-detect.html request
         headers = requests.utils.default_headers()
         headers.update({"User-Agent": "CaptiveNetworkSupport-346.50.1 wispr"})
@@ -137,7 +138,7 @@ class CaptiveportalTestCase(unittest.TestCase):
                          (getTestTarget(),), headers=headers)
         r.raise_for_status()
         # 4. Connectbox sends a welcome page, with a link to click
-        self.assertIn("<a href='http://wi.fi'", r.text)
+        self.assertIn("<a href='%s'" % self.CONNECTBOX_URL, r.text)
         # 5. Device sends wispr hotspot-detect.html request
         headers = requests.utils.default_headers()
         headers.update({"User-Agent": "CaptiveNetworkSupport-346.50.1 wispr"})
@@ -367,6 +368,95 @@ class CaptiveportalTestCase(unittest.TestCase):
         # good (valid op1)
         r = endpoint(data={"operation":"old", "dhcp_ip":"1.2.3.4"})
         self.assertEqual(r.status_code, 204)
+
+
+    def testIOS12CaptivePortalResponse(self):
+        """iOS 12 gets HREF links (same flow as iOS 9/11)"""
+        headers = requests.utils.default_headers()
+        headers.update({"User-Agent": "CaptiveNetworkSupport-1.0 wispr"})
+        r = requests.get("http://%s/hotspot-detect.html" % (getTestTarget(),),
+                         headers=headers)
+        r.raise_for_status()
+        self.assertNotIn("<BODY>\nSuccess\n</BODY>", r.text)
+        headers.update({"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 12_0"
+                        " like Mac OS X) AppleWebKit/605.1.15 (KHTML, like"
+                        " Gecko) Mobile/16A366"})
+        r = requests.get("http://%s/hotspot-detect.html" % (getTestTarget(),),
+                         headers=headers)
+        r.raise_for_status()
+        self.assertIn("<a href='%s'" % self.CONNECTBOX_URL, r.text)
+
+    def testIOS14CaptivePortalResponse(self):
+        """iOS 14 gets HREF links"""
+        headers = requests.utils.default_headers()
+        headers.update({"User-Agent": "CaptiveNetworkSupport-1.0 wispr"})
+        r = requests.get("http://%s/hotspot-detect.html" % (getTestTarget(),),
+                         headers=headers)
+        r.raise_for_status()
+        self.assertNotIn("<BODY>\nSuccess\n</BODY>", r.text)
+        headers.update({"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0"
+                        " like Mac OS X) AppleWebKit/605.1.15 (KHTML, like"
+                        " Gecko) Mobile/18A373"})
+        r = requests.get("http://%s/hotspot-detect.html" % (getTestTarget(),),
+                         headers=headers)
+        r.raise_for_status()
+        self.assertIn("<a href='%s'" % self.CONNECTBOX_URL, r.text)
+
+    def testMacOSVenturaCaptivePortalResponse(self):
+        """macOS 13 (Ventura) gets HREF links"""
+        headers = requests.utils.default_headers()
+        headers.update({"User-Agent": "CaptiveNetworkSupport-1.0 wispr"})
+        r = requests.get("http://%s/hotspot-detect.html" % (getTestTarget(),),
+                         headers=headers)
+        r.raise_for_status()
+        self.assertNotIn("<BODY>\nSuccess\n</BODY>", r.text)
+        headers.update({"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X"
+                        " 13_0) AppleWebKit/605.1.15 (KHTML, like Gecko)"})
+        r = requests.get("http://%s/hotspot-detect.html" % (getTestTarget(),),
+                         headers=headers)
+        r.raise_for_status()
+        self.assertIn("<a href='%s'" % self.CONNECTBOX_URL, r.text)
+
+    def testMacOSBigSurCaptivePortalResponse(self):
+        """macOS 11 (Big Sur) gets HREF links — new major version scheme"""
+        headers = requests.utils.default_headers()
+        headers.update({"User-Agent": "CaptiveNetworkSupport-1.0 wispr"})
+        r = requests.get("http://%s/hotspot-detect.html" % (getTestTarget(),),
+                         headers=headers)
+        r.raise_for_status()
+        self.assertNotIn("<BODY>\nSuccess\n</BODY>", r.text)
+        headers.update({"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X"
+                        " 11_0) AppleWebKit/605.1.15 (KHTML, like Gecko)"})
+        r = requests.get("http://%s/hotspot-detect.html" % (getTestTarget(),),
+                         headers=headers)
+        r.raise_for_status()
+        self.assertIn("<a href='%s'" % self.CONNECTBOX_URL, r.text)
+
+    def testMacOSMojave1014CaptivePortalResponse(self):
+        """macOS 10.14 (Mojave) gets HREF links"""
+        headers = requests.utils.default_headers()
+        headers.update({"User-Agent": "CaptiveNetworkSupport-1.0 wispr"})
+        r = requests.get("http://%s/hotspot-detect.html" % (getTestTarget(),),
+                         headers=headers)
+        r.raise_for_status()
+        self.assertNotIn("<BODY>\nSuccess\n</BODY>", r.text)
+        headers.update({"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X"
+                        " 10_14_0) AppleWebKit/605.1.15 (KHTML, like Gecko)"})
+        r = requests.get("http://%s/hotspot-detect.html" % (getTestTarget(),),
+                         headers=headers)
+        r.raise_for_status()
+        self.assertIn("<a href='%s'" % self.CONNECTBOX_URL, r.text)
+
+    def testWindowsModernNCSICaptivePortalResponse(self):
+        """Windows 10/11 /connecttest.txt bounces to captive portal page"""
+        r = requests.get("http://%s/connecttest.txt" % (getTestTarget(),))
+        r.raise_for_status()
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(self.CAPTIVE_PORTAL_SEARCH_TEXT, r.text)
+        r = requests.get("http://%s/connecttest.txt" % (getTestTarget(),))
+        r.raise_for_status()
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(self.CAPTIVE_PORTAL_SEARCH_TEXT, r.text)
 
 
 if __name__ == '__main__':
