@@ -95,30 +95,28 @@ def get_link_type(ua_str):
     user_agent = user_agent_parser.Parse(ua_str)
 
     if user_agent["os"]["family"] == "iOS":
-        # iOS 9+ can open links in Safari from the captive portal browser,
-        #  EXCEPT iOS 10 which opens links inside the captive portal browser.
-        # iOS 14+ uses WKWebView which also supports opening links in Safari.
+        # iOS 9 and iOS 11+ can open links from the captive portal browser
+        # in the system browser. iOS 10 cannot - the link opens in the
+        # captive portal browser itself. iOS 12+ restored the ability to
+        # escape to the system browser.
         try:
-            major = int(user_agent["os"]["major"])
-            if major >= 9 and major != 10:
+            major = int(user_agent["os"]["major"] or 0)
+            if major == 9 or major >= 11:
                 return LINK_OPS["HREF"]
         except (ValueError, TypeError):
             pass
-        return LINK_OPS["TEXT"]
 
     if user_agent["os"]["family"] == "Mac OS X":
-        # Sierra (10.12) and later, including macOS 11 (Big Sur) through
-        #  macOS 15 (Sequoia), can open links from the captive portal browser.
-        # ua_parser reports macOS 11+ as major=10 minor=16 or major=11+
-        #  depending on version, so check both forms.
+        # macOS 10.12 (Sierra) and later can open links from the captive
+        # portal browser in the system browser. macOS 11+ (Big Sur, Monterey,
+        # Ventura, Sonoma, Sequoia) uses a new major version numbering scheme.
         try:
-            major = int(user_agent["os"]["major"])
-            minor = int(user_agent["os"]["minor"] or "0")
+            major = int(user_agent["os"]["major"] or 0)
+            minor = int(user_agent["os"]["minor"] or 0)
             if major >= 11 or (major == 10 and minor >= 12):
                 return LINK_OPS["HREF"]
         except (ValueError, TypeError):
             pass
-        return LINK_OPS["TEXT"]
 
     return LINK_OPS["TEXT"]
 
@@ -295,14 +293,12 @@ def handle_wifistub_html():
     register_client_last_seen_time()
     return show_connected()
 
-
 @app.route('/ncsi.txt', methods=["GET", "POST"])
 def handle_ncsi_txt():
-    # Captive Portal check for Windows (up to Windows 10)
+    # Captive Portal check for Windows (legacy up to 10)
     # See: https://technet.microsoft.com/en-us/library/cc766017(v=ws.10).aspx
     register_client_last_seen_time()
     return show_connected()
-
 
 @app.route('/connecttest.txt', methods=["GET", "POST"])
 def handle_connecttest_txt():
@@ -310,7 +306,6 @@ def handle_connecttest_txt():
     # Windows 11 added this path alongside the older /ncsi.txt probe
     register_client_last_seen_time()
     return show_connected()
-
 
 # Captive Portal Check for iOS <v9 and MacOS pre-yosemite
 @app.route('/success.html', methods=["GET", "POST"])
