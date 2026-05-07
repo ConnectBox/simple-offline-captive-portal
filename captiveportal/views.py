@@ -222,7 +222,7 @@ def show_connected():
         url_for('static', filename='go-animation-%s.gif' % (icon_type,))
     return render_template(
         "connected.html",
-        connectbox_url="http://gowifi.org",
+        connectbox_url=app.config.get("CONNECTBOX_URL", "http://gowifi.org"),
         connectbox_hostname=app.config.get("CONNECTBOX_HOSTNAME", "ConnectBox"),
         LINK_OPS=LINK_OPS,
         browser_icon=browser_icon,
@@ -342,5 +342,5 @@ def handle_fallback_android():
 def captive_portal_api():
     return jsonify({
         "captive": True,
-        "user-portal-url": "http://gowifi.org"
+        "user-portal-url": app.config.get("CONNECTBOX_URL", "http://gowifi.org")
     })

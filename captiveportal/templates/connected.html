@@ -5,12 +5,12 @@
 </HEAD>
 <BODY>
 {% if link_type == "href" %}
-<a href='{{ connectbox_url }}'>Go to http://{{ wifi_data_check_turnoff }}<</a>
+<a href='{{ connectbox_url }}'>Go to {{ connectbox_url }}</a>
 {% else %}
 <strong>Go to <span style="color: #0000ff;">{{ connectbox_url }}</span></strong>
 {% endif %}
 <p>
-<img src="{{ browser_icon }}" alt="Type http://gowifi.org in your browser"/>
+<img src="{{ browser_icon }}" alt="Type {{ connectbox_url }} in your browser"/>
 </p>
 {% if show_ok %}
 <form action="" method="POST"><button style="width: 120px; height: 45px">OK</button></form>
