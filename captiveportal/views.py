@@ -19,6 +19,11 @@ _android_has_acked_cp_instructions = {}
 
 
 def secs_since_last_seen():
+    """Return seconds elapsed since this client IP was last registered with the portal.
+
+    Returns a very large number (time since epoch) for clients that have never
+    been seen, so all comparison checks naturally treat them as "new".
+    """
     last_session_start_time = \
         _client_last_seen_time.get(request.remote_addr, 0)
     return time.time() - last_session_start_time
@@ -43,6 +48,12 @@ def client_is_rejoining_network():
 
 
 def is_new_captive_portal_session():
+    """Return True if this client has not been seen within the last 24 hours.
+
+    A client older than MAX_TIME_WITHOUT_SHOWING_CP_SECS is treated as brand-new
+    so the portal page is shown again — this handles devices that return after
+    more than a day without going through the captive portal flow again.
+    """
     return secs_since_last_seen() > MAX_TIME_WITHOUT_SHOWING_CP_SECS
 
 def device_requires_ok_press(ua_str):
@@ -147,6 +158,12 @@ def android_cpa_needs_204_now():
 
 
 def register_client_last_seen_time():
+    """Record the current time as the last-seen timestamp for this client IP.
+
+    Called whenever a client successfully completes any portal interaction.
+    The timestamp is used by secs_since_last_seen() to decide whether to show
+    the portal page again or silently pass the client through.
+    """
     _client_last_seen_time[request.remote_addr] = time.time()
 
 
@@ -210,6 +227,13 @@ def handle_android():
 
 
 def show_connected():
+    """Render the captive portal welcome page tailored to the client's OS.
+
+    Selects the correct browser icon (Safari vs Chrome) and link type (clickable
+    href vs plain text) based on User-Agent so the page renders correctly in each
+    OS's captive portal browser.  Also passes the ConnectBox URL and hostname from
+    app config so the template can display the correct destination link.
+    """
     ua_str = request.headers.get("User-agent", "")
     user_agent = user_agent_parser.Parse(ua_str)
     if user_agent["os"]["family"] == "iOS" or \
@@ -232,6 +256,17 @@ def show_connected():
 
 
 def _do_remove_client(source_ip):
+    """Remove all session state for source_ip from both tracking dicts.
+
+    Called when a client is explicitly de-authorised (DELETE /_authorised_clients)
+    or when Android rejoins the network and needs a fresh portal session.
+    Removing the ack flag forces the next generate_204 request to return a 200,
+    which raises the Android "Sign in to network" sheet.
+
+    Parameters
+    ----------
+    source_ip : str — dotted-decimal IPv4 address string
+    """
     if source_ip in _client_last_seen_time:
         del _client_last_seen_time[source_ip]
 
@@ -289,49 +324,66 @@ def handle_dhcp_event():
 
 @app.route('/kindle-wifi/wifistub.html', methods=["GET", "POST"])
 def handle_wifistub_html():
-    # Captive Portal check for Amazon Kindle Fire
+    """Captive portal probe handler for Amazon Kindle Fire devices."""
     register_client_last_seen_time()
     return show_connected()
 
 @app.route('/ncsi.txt', methods=["GET", "POST"])
 def handle_ncsi_txt():
-    # Captive Portal check for Windows (legacy up to 10)
-    # See: https://technet.microsoft.com/en-us/library/cc766017(v=ws.10).aspx
+    """Captive portal probe handler for Windows (legacy, up to Windows 10).
+
+    Windows checks for internet access by fetching /ncsi.txt and comparing
+    the response to a known string.  Returning the portal page instead causes
+    Windows to detect the captive portal and show the sign-in notification.
+    See: https://technet.microsoft.com/en-us/library/cc766017(v=ws.10).aspx
+    """
     register_client_last_seen_time()
     return show_connected()
 
 @app.route('/connecttest.txt', methods=["GET", "POST"])
 def handle_connecttest_txt():
-    # Captive Portal check for Windows 11
-    # Windows 11 added this path alongside the older /ncsi.txt probe
+    """Captive portal probe handler for Windows 11.
+
+    Windows 11 probes /connecttest.txt in addition to the legacy /ncsi.txt path.
+    Both must be handled so the sign-in notification appears on all Windows versions.
+    """
     register_client_last_seen_time()
     return show_connected()
 
-# Captive Portal Check for iOS <v9 and MacOS pre-yosemite
 @app.route('/success.html', methods=["GET", "POST"])
 def handle_early_ios_macos():
+    """Captive portal probe handler for iOS < v9 and macOS pre-Yosemite."""
     return handle_ios_macos()
 
-# Other iOS captive portal
 @app.route('/library/test/success.html', methods=["GET", "POST"])
 def handle_other_ios():
+    """Captive portal probe handler for alternate iOS success-page URL."""
     return handle_ios_macos()
 
-# Captive portal check for iOS >= v9 and MacOS Yosemite and later
 @app.route('/hotspot-detect.html', methods=["GET", "POST"])
 def handle_current_ios_macos():
+    """Captive portal probe handler for iOS >= v9 and macOS Yosemite and later."""
     return handle_ios_macos()
 
 
 # See: https://www.chromium.org/chromium-os/chromiumos-design-docs/network-portal-detection
 @app.route('/generate_204', methods=["GET", "POST"])
 def handle_default_android():
+    """Captive portal probe handler for Android (primary generate_204 endpoint).
+
+    Android probes this URL expecting a 204 response when internet is available.
+    Returning a 200 instead signals a captive portal and raises the sign-in sheet.
+    """
     return handle_android()
 
 
-# Fallback method introduced in Android 7
 @app.route('/gen_204', methods=["GET", "POST"])
 def handle_fallback_android():
+    """Captive portal probe handler for Android 7+ fallback gen_204 endpoint.
+
+    Android 7 introduced /gen_204 as an alternative probe alongside /generate_204.
+    Both must be handled to support all Android versions.
+    """
     return handle_android()
 
 
