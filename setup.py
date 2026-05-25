@@ -15,6 +15,6 @@ setup(
         'gunicorn==20.0.4',
         'itsdangerous==1.1',   # 3.5 support dropped 15Apr2020, so must use 1.1
         'MarkupSafe==1.1.1',  # 3.5 support dropped 30Jan2020
-        'Jinja2==2.11.2',  # 3.5 support dropped 27Jan2020
+        'Jinja2==2.11.3',  # 3.5 support dropped 27Jan2020
     ],
 )
