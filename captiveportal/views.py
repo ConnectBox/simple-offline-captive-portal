@@ -1,4 +1,5 @@
 import ipaddress
+import re
 import time
 from flask import jsonify, redirect, render_template, request, Response, url_for
 from ua_parser import user_agent_parser
@@ -92,6 +93,24 @@ def device_requires_ok_press(ua_str):
     # causes android_cpa_needs_204_now() to return True and complete the
     # captive portal handshake — without it the device stays in portal state.
     return True
+
+
+def device_needs_use_as_is(ua_str):
+    """Should the page tell the user to choose "Use this network as is"?
+
+    Android 10+ checks https://www.google.com/generate_204 as well as the HTTP
+    probe. An offline ConnectBox can never pass the HTTPS check, so after the
+    OK press Android reports "partial connectivity" rather than validating the
+    network, and the sign-in sheet stays open until the user picks
+    "Use this network as is" from its menu (seen on a Galaxy S25, Android 17).
+    The sign-in WebView of current Android reports a reduced user agent
+    ("Linux; Android 10; K; wv") whatever the real version, which still
+    parses as Android 10, so a major version of 10 or more selects it.
+    """
+    # Read the version straight from the string: older ua_parser releases
+    #  cannot parse the reduced "Android 10; K" form and report no version.
+    match = re.search(r"Android (\d+)", ua_str or "")
+    return bool(match) and int(match.group(1)) >= 10
 
 
 def get_link_type(ua_str):
@@ -252,6 +271,7 @@ def show_connected():
         browser_icon=browser_icon,
         link_type=get_link_type(ua_str),
         show_ok=device_requires_ok_press(ua_str),
+        show_use_as_is=device_needs_use_as_is(ua_str),
     )
 
 
