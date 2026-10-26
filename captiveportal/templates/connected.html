@@ -1,23 +1,23 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
-<HTML>
+<HTML lang="{{ lang }}" dir="{{ text_dir }}">
 <HEAD>
-    <TITLE>Connected to {{connectbox_hostname}}	Wifi</TITLE>
+    <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <TITLE>{{ title }}</TITLE>
 </HEAD>
 <BODY>
 {% if link_type == "href" %}
-<a href='{{ connectbox_url }}'>Go to {{ connectbox_url }}</a>
+<a href='{{ connectbox_url }}'>{{ go_to_link }}</a>
 {% else %}
-<strong>Go to <span style="color: #0000ff;">{{ connectbox_url }}</span></strong>
+<strong>{{ go_to_text }}</strong>
 {% endif %}
 <p>
-<img src="{{ browser_icon }}" alt="Type {{ connectbox_url }} in your browser"/>
+<img src="{{ browser_icon }}" alt="{{ type_address }}"/>
 </p>
 {% if show_ok %}
-<form action="" method="POST"><button style="width: 120px; height: 45px">OK</button></form>
+<form action="" method="POST"><button style="width: 120px; height: 45px">{{ ok_label }}</button></form>
 {% endif %}
 {% if show_use_as_is %}
-<p style="font-size: 1.5em">If this page does not close after OK,<br>
-tap <strong>&#8942;</strong> (top right) and choose <strong>Use this network as is</strong>.</p>
+<p style="font-size: 1.5em">{{ not_closing }}</p>
 {% endif %}
 </BODY>
 </HTML>

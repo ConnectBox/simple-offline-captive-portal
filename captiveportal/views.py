@@ -2,9 +2,11 @@ import ipaddress
 import re
 import time
 from flask import jsonify, redirect, render_template, request, Response, url_for
+from markupsafe import Markup
 from ua_parser import user_agent_parser
 
 from captiveportal import app
+from captiveportal import translations
 
 
 LINK_OPS = {
@@ -263,15 +265,36 @@ def show_connected():
 
     browser_icon = \
         url_for('static', filename='go-animation-%s.gif' % (icon_type,))
+    url = app.config.get("CONNECTBOX_URL", "http://gowifi.org")
+    hostname = app.config.get("CONNECTBOX_HOSTNAME", "ConnectBox")
+
+    # Page text in the phone's language if the box has it (see translations.py)
+    translations_dir = app.config.get("TRANSLATIONS_DIR", "/usr/local/connectbox/translations")
+    lang = translations.choose_language(
+        [value for value, _quality in request.accept_languages],
+        translations_dir,
+        app.config.get("LANGUAGES_JSON", "/var/www/enhanced/content/www/assets/content/languages.json"))
+    s = translations.page_strings(lang, translations_dir)
+    url_html = Markup('<span dir="ltr">%s</span>') % url
     return render_template(
         "connected.html",
-        connectbox_url=app.config.get("CONNECTBOX_URL", "http://gowifi.org"),
-        connectbox_hostname=app.config.get("CONNECTBOX_HOSTNAME", "ConnectBox"),
+        connectbox_url=url,
+        connectbox_hostname=hostname,
         LINK_OPS=LINK_OPS,
         browser_icon=browser_icon,
         link_type=get_link_type(ua_str),
         show_ok=device_requires_ok_press(ua_str),
         show_use_as_is=device_needs_use_as_is(ua_str),
+        lang=lang,
+        text_dir="rtl" if translations.is_rtl(lang) else "ltr",
+        title=translations.plain(s["PORTAL_TITLE"], name=hostname),
+        go_to_link=translations.fill(s["PORTAL_GO_TO"], url=url_html),
+        go_to_text=translations.fill(
+            s["PORTAL_GO_TO"], url=Markup('<span dir="ltr" style="color: #0000ff;">%s</span>') % url),
+        type_address=translations.plain(s["PORTAL_TYPE_ADDRESS"], url=url),
+        ok_label=s["PORTAL_OK"],
+        not_closing=translations.fill(
+            s["PORTAL_NOT_CLOSING"], option=Markup('<strong>%s</strong>') % s["PORTAL_USE_AS_IS"]),
     )
 
 
