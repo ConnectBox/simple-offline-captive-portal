@@ -57,3 +57,11 @@ working directory to create and write log files in it, and finally run a
 [WSGI container](http://flask.pocoo.org/docs/0.12/deploying/wsgi-standalone/) with the application.
 And, most likely, it will also run behind a
 [reverse proxy](http://flask.pocoo.org/docs/0.12/deploying/wsgi-standalone/#proxy-setups).
+
+## Page language
+
+The "Connected to ... Wifi" page is shown in the phone's language when the box has it (`captiveportal/translations.py`): the first language in the request's `Accept-Language` header that the box has content in (exact code, then the same base language: `es-MX` -> `es`, `zh-TW` -> `zh`), otherwise the box's default language from `languages.json`, otherwise English. Right-to-left languages are laid out right to left.
+
+The text comes from the box's interface translation files (`TRANSLATIONS_DIR`, default `/usr/local/connectbox/translations/<code>.json`, shipped by connectbox-pi and managed by mmiLoader with the menu strings) under the `PORTAL_*` keys. Each entry records the English it was translated from; an entry whose English no longer matches `translations.ENGLISH` is not used, and a missing string is shown in English. `PORTAL_USE_AS_IS` must be Android's own wording of its "Use this network as is" menu item. The box's languages come from `LANGUAGES_JSON` (default `/var/www/enhanced/content/www/assets/content/languages.json`); when it cannot be read, every language with a translation file counts. Keep `ENGLISH` in step with the `PORTAL_*` strings in mmiLoader's `EXTRA_INTERFACE_STRINGS`.
+
+The old-phone handling in `views.py` (iOS 9 / Android 4-5 era devices) is intentional; do not remove it.
